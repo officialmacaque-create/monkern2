@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Monkern Store</title>
+  <style>
+    @property --ang { syntax: "<angle>"; initial-value: 0deg; inherits: false; }
+    :root { --accent: #7c5cff; --accent2: #00e5ff; }
+    * { box-sizing: border-box; -webkit-user-select: none; user-select: none; -webkit-user-drag: none; }
+    body {
+      margin: 0; min-height: 100vh; padding: 80px 0 40px; overflow-x: hidden;
+      font-family: "Segoe UI", Arial, sans-serif; color: #fff; background: #0f0f14;
+    }
+    .hidden { display: none !important; }
+
+    #dtwarn {
+      position: fixed; inset: 0; z-index: 9999; background: #0f0f14;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.4rem; font-weight: 700; text-align: center; padding: 20px;
+    }
+
+    #fx { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+    .blob { position: absolute; width: 50vmax; height: 50vmax; border-radius: 50%; filter: blur(90px); opacity: .35; }
+    .b1 { background: var(--accent); top: -15%; left: -10%; animation: drift1 18s ease-in-out infinite alternate; }
+    .b2 { background: var(--accent2); bottom: -20%; right: -10%; animation: drift2 22s ease-in-out infinite alternate; }
+    .b3 { background: #ff3d9a; width: 35vmax; height: 35vmax; top: 35%; left: 40%; opacity: .18; animation: drift3 26s ease-in-out infinite alternate; }
+    #stars { position: absolute; inset: 0; }
+    .floater { position: absolute; bottom: -90px; opacity: .13; animation: floatUp linear infinite; filter: blur(.5px); }
+    #glow { position: absolute; width: 300px; height: 300px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(0,229,255,.18), transparent 65%); transition: transform .12s ease-out; }
+
+    .panel {
+      position: relative; overflow: hidden;
+      background: rgba(60,60,70,.5);
+      backdrop-filter: blur(12px);
+      border-radius: 24px;
+      width: 90%; max-width: 700px;
+      margin: 0 auto 28px; padding: 28px;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0,0,0,.5);
+      transition: transform .15s ease-out, box-shadow .3s;
+      animation: rise .9s cubic-bezier(.2,.9,.3,1.2) backwards;
+      animation-delay: calc(var(--d, 0) * .14s);
+    }
+    .panel::before {
+      content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 2px; pointer-events: none;
+      background: conic-gradient(from var(--ang), transparent 0 65%, var(--accent) 82%, var(--accent2) 100%);
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor; mask-composite: exclude;
+      animation: ang 4s linear infinite;
+    }
+    .panel::after {
+      content: ""; position: absolute; top: 0; left: -120%; width: 60%; height: 100%; pointer-events: none;
+      background: linear-gradient(100deg, transparent, rgba(255,255,255,.16), transparent);
+      transform: skewX(-20deg); transition: left .9s;
+    }
+    .panel:hover::after { left: 140%; }
+    .panel:hover { box-shadow: 0 16px 50px rgba(124,92,255,.45); }
+    .panel.plain { background: transparent; box-shadow: none; backdrop-filter: none; overflow: visible; }
+    .panel.plain::before, .panel.plain::after { display: none; }
+    #home > .panel:nth-child(2) { --d: 1; }
+    #home > .panel:nth-child(3) { --d: 2; }
+    #home > .panel:nth-child(4) { --d: 3; }
+
+    h1 {
+      margin: 0; font-size: 2.6rem; letter-spacing: 3px; text-transform: uppercase;
+      background: linear-gradient(90deg, var(--accent), var(--accent2), #ff3d9a, var(--accent));
+      background-size: 300% 100%;
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+      animation: flow 6s linear infinite, glowpulse 3s ease-in-out infinite;
+    }
+    h1:hover { animation: flow 6s linear infinite, glitch .4s steps(2) infinite; }
+    h2 { margin: 0 0 14px; font-size: 1.7rem; letter-spacing: 2px; text-transform: uppercase; }
+    h3 { margin: 0 0 6px; font-size: .95rem; letter-spacing: 3px; text-transform: uppercase; color: var(--accent2); }
+    p { margin: 16px 0 0; font-size: 1.1rem; color: #ddd; }
+    .credits p { margin: 0; font-size: 1.2rem; font-weight: 600; }
+
+    .avatar {
+      width: 120px; height: 120px; object-fit: cover;
+      border-radius: 50%; display: block; margin: 0 auto;
+      border: 3px solid var(--accent2);
+      transition: transform .4s cubic-bezier(.3,1.6,.5,1);
+      animation: bob 3s ease-in-out infinite, ringpulse 2.4s ease-in-out infinite;
+    }
+    .avatar:hover { transform: rotate(360deg) scale(1.2); }
+
+    .btn {
+      position: relative; overflow: hidden;
+      font: inherit; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+      color: #fff; border: none; cursor: pointer;
+      padding: 14px 32px; border-radius: 999px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2), var(--accent));
+      background-size: 200% 100%;
+      transition: transform .25s cubic-bezier(.3,1.6,.5,1), box-shadow .25s;
+      animation: flow2 4s linear infinite, btnpulse 2s ease-in-out infinite;
+    }
+    .btn::after {
+      content: ""; position: absolute; top: 0; left: -80%; width: 50%; height: 100%;
+      background: linear-gradient(100deg, transparent, rgba(255,255,255,.55), transparent);
+      transform: skewX(-20deg); animation: shine 3s ease-in-out infinite;
+    }
+    .btn:hover { transform: translateY(-4px) scale(1.08); }
+    .btn:active { transform: scale(.94); }
+    .btn.small { padding: 10px 22px; font-size: .85rem; animation: none; }
+    .btn.ghost { background: rgba(255,255,255,.12); }
+    .btn:disabled { opacity: .6; cursor: default; }
+    .ripple { position: absolute; border-radius: 50%; background: rgba(255,255,255,.6); transform: scale(0); pointer-events: none; animation: ripple .7s ease-out forwards; }
+
+    #loader {
+      position: fixed; inset: 0; z-index: 100;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px;
+      background: radial-gradient(circle at center, rgba(30,24,60,.97), rgba(10,10,14,.99));
+      opacity: 0; pointer-events: none; transition: opacity .5s;
+    }
+    #loader.show { opacity: 1; pointer-events: all; }
+    .spinner {
+      position: relative; width: 100px; height: 100px; border-radius: 50%;
+      border: 5px solid transparent; border-top-color: var(--accent2); border-bottom-color: var(--accent);
+      animation: spin 1s linear infinite; filter: drop-shadow(0 0 12px var(--accent2));
+    }
+    .spinner::before, .spinner::after { content: ""; position: absolute; border-radius: 50%; border: 5px solid transparent; }
+    .spinner::before { inset: 10px; border-left-color: var(--accent); border-right-color: var(--accent2); animation: spin 1.6s linear infinite reverse; }
+    .spinner::after { inset: 24px; border-top-color: #fff; animation: spin .7s linear infinite; }
+    .bar { width: min(320px, 70vw); height: 10px; border-radius: 99px; background: rgba(255,255,255,.1); overflow: hidden; box-shadow: 0 0 20px rgba(124,92,255,.4); }
+    .bar div {
+      height: 100%; width: 0; border-radius: 99px; transition: width .2s linear;
+      background: linear-gradient(45deg, rgba(255,255,255,.3) 25%, transparent 25% 50%, rgba(255,255,255,.3) 50% 75%, transparent 75%),
+                  linear-gradient(90deg, var(--accent), var(--accent2));
+      background-size: 28px 28px, 100% 100%;
+      animation: stripes .6s linear infinite;
+    }
+    .percent { font-size: 2.6rem; font-weight: 800; letter-spacing: 2px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+      animation: glowpulse 1.5s ease-in-out infinite; }
+    .status { font-size: .85rem; color: #aaa; letter-spacing: 2px; text-transform: uppercase; min-height: 1.2em; text-align: center; padding: 0 16px; animation: blink 1.6s ease-in-out infinite; }
+
+    .shop-head { display: flex; justify-content: space-between; align-items: center; width: 90%; max-width: 1000px; margin: 0 auto 28px; animation: rise .8s cubic-bezier(.2,.9,.3,1.2) backwards; }
+    .shop-head h1 { font-size: 2rem; }
+    .shop-btns { display: flex; gap: 12px; }
+    .grid { width: 90%; max-width: 1000px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 24px; }
+    .grid .panel { width: auto; margin: 0; display: flex; flex-direction: column; justify-content: space-between; gap: 16px; padding: 22px; animation-name: flip; animation-duration: .9s; animation-delay: calc(var(--d, 0) * .18s + .2s); }
+    .monks { display: flex; flex-wrap: wrap; justify-content: center; align-content: center; gap: 6px; min-height: 130px; }
+    .monks img { width: 44px; height: 44px; object-fit: contain; animation: pop .5s cubic-bezier(.3,1.8,.5,1) backwards, bob 2.4s ease-in-out infinite; animation-delay: calc(var(--i) * .05s + .5s), calc(var(--i) * .15s); }
+    .monks.one img { width: 90px; height: 90px; }
+    .amount { font-size: 1.5rem; font-weight: 800; margin: 0; color: #fff; }
+    .price { margin: 0; font-size: 1.3rem; font-weight: 700; color: var(--accent2); }
+    .price s { color: #999; font-size: 1rem; font-weight: 400; margin-left: 8px; }
+
+    #toast {
+      position: fixed; bottom: 30px; left: 50%; transform: translate(-50%, 140px) scale(.8);
+      background: #1c1c26; border: 1px solid var(--accent2); color: #fff;
+      padding: 14px 28px; border-radius: 999px; z-index: 400;
+      transition: transform .5s cubic-bezier(.3,1.7,.5,1); box-shadow: 0 0 25px rgba(0,229,255,.5);
+    }
+    #toast.show { transform: translate(-50%, 0) scale(1); }
+    #confetti { position: fixed; inset: 0; z-index: 150; pointer-events: none; }
+
+    #game { position: fixed; inset: 0; z-index: 120; background: #0b0b10; cursor: crosshair; }
+    #gc { display: block; width: 100%; height: 100%; }
+    #hud { position: absolute; top: 16px; left: 20px; font-weight: 800; letter-spacing: 1px; line-height: 1.6; text-shadow: 0 0 10px #000; pointer-events: none; }
+    #gexit { position: absolute; top: 14px; right: 16px; }
+    #gover { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; background: rgba(0,0,0,.72); text-align: center; }
+    #gover h2 { font-size: 3rem; color: #ff4d6d; margin: 0; }
+    #gover p { margin: 0; }
+
+    input { -webkit-user-select: text; user-select: text; }
+    #acct { position: fixed; top: 14px; right: 16px; z-index: 110; display: flex; align-items: center; gap: 10px; }
+    #acctInfo { display: flex; align-items: center; gap: 12px; background: rgba(28,28,38,.85); border: 1px solid var(--accent2); border-radius: 999px; padding: 6px 8px 6px 18px; box-shadow: 0 0 18px rgba(0,229,255,.35); backdrop-filter: blur(8px); font-weight: 700; font-size: .9rem; }
+    #acctMonks { color: var(--accent2); }
+    #lmodal { position: fixed; inset: 0; z-index: 300; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.72); padding: 16px; }
+    #lbox { width: 100%; max-width: 380px; background: #1c1c26; border: 1px solid var(--accent2); border-radius: 24px; padding: 28px; text-align: center; box-shadow: 0 0 40px rgba(124,92,255,.5); animation: rise .5s cubic-bezier(.2,.9,.3,1.2); }
+    #lbox h2 { margin: 0 0 6px; }
+    #lbox .sub { margin: 0 0 18px; font-size: .9rem; color: #aaa; }
+    #lbox input { display: block; width: 100%; margin-bottom: 12px; padding: 13px 16px; border-radius: 14px; border: 1px solid rgba(255,255,255,.15); background: rgba(255,255,255,.07); color: #fff; font: inherit; outline: none; }
+    #lbox input:focus { border-color: var(--accent2); box-shadow: 0 0 12px rgba(0,229,255,.4); }
+    #lerr { min-height: 1.3em; margin: 0 0 12px; font-size: .9rem; color: #ff4d6d; }
+    .lbtns { display: flex; gap: 10px; justify-content: center; }
+    #lcode { text-align: center; letter-spacing: 4px; font-weight: 700; text-transform: uppercase; }
+
+    @keyframes rise { from { opacity: 0; transform: translateY(60px) scale(.9); } to { opacity: 1; transform: none; } }
+    @keyframes flip { from { opacity: 0; transform: perspective(800px) rotateY(-90deg) scale(.6); } to { opacity: 1; transform: none; } }
+    @keyframes pop { from { opacity: 0; transform: scale(0) rotate(-180deg); } to { opacity: 1; transform: none; } }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes ang { to { --ang: 360deg; } }
+    @keyframes flow { to { background-position: 300% 0; } }
+    @keyframes flow2 { to { background-position: 200% 0; } }
+    @keyframes shine { 0%, 60% { left: -80%; } 100% { left: 160%; } }
+    @keyframes stripes { to { background-position: 28px 0, 0 0; } }
+    @keyframes bob { 50% { translate: 0 -8px; } }
+    @keyframes blink { 50% { opacity: .45; } }
+    @keyframes ripple { to { transform: scale(4); opacity: 0; } }
+    @keyframes glowpulse { 50% { filter: drop-shadow(0 0 14px rgba(0,229,255,.8)); } }
+    @keyframes ringpulse { 0%, 100% { box-shadow: 0 0 15px rgba(0,229,255,.6), 0 0 0 0 rgba(0,229,255,.5); } 50% { box-shadow: 0 0 30px rgba(124,92,255,.9), 0 0 0 14px rgba(0,229,255,0); } }
+    @keyframes btnpulse { 50% { box-shadow: 0 0 30px rgba(0,229,255,.7); } 0%, 100% { box-shadow: 0 6px 20px rgba(124,92,255,.5); } }
+    @keyframes glitch { 0% { transform: translate(2px, 0) skewX(4deg); } 50% { transform: translate(-3px, 1px) skewX(-6deg); } 100% { transform: translate(1px, -1px); } }
+    @keyframes floatUp { to { transform: translateY(-125vh) rotate(360deg); } }
+    @keyframes drift1 { to { transform: translate(30vw, 25vh) scale(1.3); } }
+    @keyframes drift2 { to { transform: translate(-30vw, -20vh) scale(1.2); } }
+    @keyframes drift3 { to { transform: translate(-20vw, 15vh) scale(1.5); } }
+
+    @media (prefers-reduced-motion: reduce) { * { animation-duration: .01s !important; animation-iteration-count: 1 !important; } }
+  </style>
+</head>
+<body>
+
+  <div id="dtwarn" class="hidden">Please close developer tools to view this site.</div>
+
+  <div id="fx">
+    <div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
+    <canvas id="stars"></canvas>
+    <div id="glow"></div>
+  </div>
+
+  <div id="home">
+    <div class="panel"><h1>Monkern Store</h1></div>
+
+    <div class="panel">
+      <img class="avatar" draggable="false" src="https://cdn.phototourl.com/member/2026-10-22-a4b86570-7270-4e4b-9ed3-48c2f03f6c69.png" alt="Fredderick">
+      <p>fredderick was our number one buyer till he got sold on ebay for 80$ ):</p>
+    </div>
+
+    <div class="panel plain">
+      <button class="btn" id="monksBtn">Monks for sale</button>
+    </div>
+
+    <div class="panel credits">
+      <h2>Credits</h2>
+      <h3>Owners</h3>
+      <p>Lumitz and Funni</p>
+    </div>
+  </div>
+
+  <div id="shop" class="hidden">
+    <div class="shop-head">
+      <h1>Monks for sale</h1>
+      <div class="shop-btns">
+        <button class="btn small" id="gameBtn">🎮 Zombie Minigame</button>
+        <button class="btn small ghost" id="backBtn">&larr; Back</button>
+      </div>
+    </div>
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <div id="loader">
+    <div class="spinner"></div>
+    <div class="percent" id="percent">0%</div>
+    <div class="bar"><div id="barFill"></div></div>
+    <div class="status" id="status">Starting...</div>
+  </div>
+
+  <div id="game" class="hidden">
+    <canvas id="gc"></canvas>
+    <div id="hud"></div>
+    <button class="btn small ghost" id="gexit">Exit</button>
+    <div id="gover" class="hidden">
+      <h2>YOU DIED</h2>
+      <p id="gstats"></p>
+      <button class="btn" id="gagain">Play again</button>
+    </div>
+  </div>
+
+  <div id="acct">
+    <button class="btn small" id="loginBtn">Log in</button>
+    <div id="acctInfo" class="hidden">
+      <span id="acctName"></span>
+      <span id="acctMonks">0 Monks</span>
+      <button class="btn small ghost" id="logoutBtn">Log out</button>
+    </div>
+  </div>
+
+  <div id="lmodal" class="hidden">
+    <div id="lbox">
+      <h2>Log in</h2>
+      <p class="sub">In the game, press the Website Login button, then type the code it shows</p>
+      <input id="lcode" type="text" placeholder="XXXX-XXXX" maxlength="9" autocomplete="off" autocapitalize="characters">
+      <p id="lerr"></p>
+      <div class="lbtns">
+        <button class="btn" id="lsubmit">Log in</button>
+        <button class="btn ghost" id="lcancel">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast">test ran</div>
+  <canvas id="confetti"></canvas>
+
+  <script>
+    (function () {
+      var warn = document.getElementById("dtwarn");
+      document.addEventListener("contextmenu", function (e) { e.preventDefault(); });
+      document.addEventListener("dragstart", function (e) { e.preventDefault(); });
+      document.addEventListener("keydown", function (e) {
+        var k = (e.key || "").toLowerCase();
+        if (e.key === "F12" ||
+            (e.ctrlKey && e.shiftKey && (k === "i" || k === "j" || k === "c")) ||
+            (e.metaKey && e.altKey && (k === "i" || k === "j" || k === "c")) ||
+            (e.ctrlKey && (k === "u" || k === "s")) ||
+            (e.metaKey && (k === "u" || k === "s"))) {
+          e.preventDefault();
+          e.stopPropagation();
+          return false;
+        }
+      }, true);
+      setInterval(function () {
+        var open = (window.outerWidth - window.innerWidth > 200) || (window.outerHeight - window.innerHeight > 200);
+        warn.classList.toggle("hidden", !open);
+      }, 700);
+    })();
+
+    var IMG = "https://cdn.phototourl.com/member/2026-10-22-cf2a3914-46df-49fb-a8cd-866e8287fc95.png";
+    var AVATAR = document.querySelector(".avatar").src;
+    var packs = [
+      { count: 1,  name: "500 Monks",    price: "$4.99", old: "$5.99" },
+      { count: 4,  name: "2000 Monks",   price: "$10" },
+      { count: 10, name: "11000 Monks",  price: "$20" },
+      { count: 20, name: "20000 Monks",  price: "$40" }
+    ];
+
+    function rand(min, max) { return min + Math.random() * (max - min); }
+
+    var grid = document.getElementById("grid");
+    packs.forEach(function (p, idx) {
+      var imgs = "";
+      for (var i = 0; i < p.count; i++) imgs += '<img draggable="false" style="--i:' + i + '" src="' + IMG + '" alt="Monk">';
+      var card = document.createElement("div");
+      card.className = "panel";
+      card.style.setProperty("--d", idx);
+      card.innerHTML =
+        '<div class="monks' + (p.count === 1 ? ' one' : '') + '">' + imgs + '</div>' +
+        '<p class="amount">' + p.name + '</p>' +
+        '<p class="price">' + p.price + (p.old ? '<s>' + p.old + '</s>' : '') + '</p>' +
+        '<button class="btn purchase">Purchase</button>';
+      grid.appendChild(card);
+    });
+
+    var fx = document.getElementById("fx");
+    for (var f = 0; f < 12; f++) {
+      var m = new Image();
+      m.src = IMG; m.className = "floater";
+      m.style.cssText = "left:" + rand(0, 95) + "%;width:" + rand(28, 62) + "px;animation-duration:" + rand(16, 30) + "s;animation-delay:-" + rand(0, 25) + "s";
+      fx.appendChild(m);
+    }
+
+    var cv = document.getElementById("stars"), cx = cv.getContext("2d"), W, H, pts = [], mx = -999, my = -999;
+    function sizeCv() { W = cv.width = innerWidth; H = cv.height = innerHeight; }
+    sizeCv(); addEventListener("resize", sizeCv);
+    for (var s = 0; s < 70; s++) pts.push({ x: rand(0, innerWidth), y: rand(0, innerHeight), vx: rand(-.3, .3), vy: rand(-.3, .3), r: rand(1, 2.4) });
+    (function drawStars() {
+      cx.clearRect(0, 0, W, H);
+      for (var i = 0; i < pts.length; i++) {
+        var a = pts[i];
+        var dx = a.x - mx, dy = a.y - my, d = Math.sqrt(dx * dx + dy * dy);
+        if (d < 130) { a.x += dx / d * 2; a.y += dy / d * 2; }
+        a.x += a.vx; a.y += a.vy;
+        if (a.x < 0) a.x = W; if (a.x > W) a.x = 0;
+        if (a.y < 0) a.y = H; if (a.y > H) a.y = 0;
+        cx.fillStyle = "rgba(255,255,255,.7)";
+        cx.beginPath(); cx.arc(a.x, a.y, a.r, 0, 6.3); cx.fill();
+        for (var j = i + 1; j < pts.length; j++) {
+          var b = pts[j], ex = a.x - b.x, ey = a.y - b.y, e = Math.sqrt(ex * ex + ey * ey);
+          if (e < 110) {
+            cx.strokeStyle = "rgba(0,229,255," + (1 - e / 110) * .35 + ")";
+            cx.beginPath(); cx.moveTo(a.x, a.y); cx.lineTo(b.x, b.y); cx.stroke();
+          }
+        }
+      }
+      requestAnimationFrame(drawStars);
+    })();
+
+    var glow = document.getElementById("glow"), cur = null;
+    document.addEventListener("mousemove", function (e) {
+      mx = e.clientX; my = e.clientY;
+      glow.style.transform = "translate(" + (mx - 150) + "px," + (my - 150) + "px)";
+      var p = e.target.closest ? e.target.closest(".panel:not(.plain)") : null;
+      if (cur && cur !== p) cur.style.transform = "";
+      cur = p;
+      if (p) {
+        var r = p.getBoundingClientRect();
+        var x = (e.clientX - r.left) / r.width - .5, y = (e.clientY - r.top) / r.height - .5;
+        p.style.transform = "perspective(800px) rotateX(" + (-y * 12) + "deg) rotateY(" + (x * 12) + "deg) translateY(-6px)";
+      }
+    });
+    document.addEventListener("mouseleave", function () { if (cur) cur.style.transform = ""; mx = my = -999; });
+
+    document.addEventListener("click", function (e) {
+      var b = e.target.closest ? e.target.closest(".btn") : null;
+      if (!b) return;
+      var r = b.getBoundingClientRect(), sz = Math.max(r.width, r.height);
+      var rp = document.createElement("span");
+      rp.className = "ripple";
+      rp.style.cssText = "width:" + sz + "px;height:" + sz + "px;left:" + (e.clientX - r.left - sz / 2) + "px;top:" + (e.clientY - r.top - sz / 2) + "px";
+      b.appendChild(rp);
+      setTimeout(function () { rp.remove(); }, 700);
+    });
+
+    var cf = document.getElementById("confetti"), cc = cf.getContext("2d"), bits = [], cfRun = false;
+    var colors = ["#7c5cff", "#00e5ff", "#ff3d9a", "#ffd23d", "#ffffff"];
+    function burst(x, y) {
+      cf.width = innerWidth; cf.height = innerHeight;
+      for (var i = 0; i < 100; i++) bits.push({ x: x, y: y, vx: rand(-8, 8), vy: rand(-15, -3), s: rand(5, 10), r: rand(0, 6), vr: rand(-.3, .3), c: colors[i % 5], l: 1 });
+      if (!cfRun) { cfRun = true; tick(); }
+    }
+    function tick() {
+      cc.clearRect(0, 0, cf.width, cf.height);
+      bits = bits.filter(function (b) { return b.l > 0 && b.y < cf.height + 20; });
+      bits.forEach(function (b) {
+        b.vy += .35; b.vx *= .99; b.x += b.vx; b.y += b.vy; b.r += b.vr; b.l -= .006;
+        cc.save(); cc.globalAlpha = Math.max(b.l, 0); cc.translate(b.x, b.y); cc.rotate(b.r);
+        cc.fillStyle = b.c; cc.fillRect(-b.s / 2, -b.s / 4, b.s, b.s / 2); cc.restore();
+      });
+      if (bits.length) requestAnimationFrame(tick); else { cfRun = false; cc.clearRect(0, 0, cf.width, cf.height); }
+    }
+
+    var home = document.getElementById("home");
+    var shop = document.getElementById("shop");
+    var loader = document.getElementById("loader");
+    var toast = document.getElementById("toast");
+    var percentEl = document.getElementById("percent");
+    var barFill = document.getElementById("barFill");
+    var statusEl = document.getElementById("status");
+    var busy = false;
+
+    function statusFor(pct, waiting) {
+      if (waiting) return "Waiting for connection...";
+      if (pct < 15) return "Starting...";
+      if (pct < 35) return "Connecting to the monk market...";
+      if (pct < 60) return "Downloading monks...";
+      if (pct < 80) return "Counting monks...";
+      if (pct < 97) return "Almost there...";
+      if (pct < 100) return "Finalizing...";
+      return "Done!";
+    }
+
+    document.getElementById("monksBtn").addEventListener("click", function () {
+      if (busy) return;
+      busy = true;
+      percentEl.textContent = "0%";
+      barFill.style.width = "0%";
+      statusEl.textContent = "Starting...";
+      loader.classList.add("show");
+
+      var b0 = performance.now(), x = 0;
+      for (var i = 0; i < 3000000; i++) { x += Math.sqrt(i); }
+      var cpuMs = performance.now() - b0;
+      var baseSeconds = Math.min(9, Math.max(3.5, 3.5 + cpuMs / 12));
+      var rate = 100 / baseSeconds;
+
+      var urls = [IMG, AVATAR];
+      var loaded = 0, allLoaded = false;
+      urls.forEach(function (src) {
+        var im = new Image();
+        im.onload = im.onerror = function () {
+          loaded++;
+          if (loaded === urls.length) allLoaded = true;
+        };
+        im.src = src + (src.indexOf("?") > -1 ? "&" : "?") + "t=" + Date.now();
+      });
+
+      var stops = [rand(10, 22), rand(32, 48), rand(56, 70), rand(78, 90), 97];
+      var stopIndex = 0, stallUntil = 0, pct = 0, last = performance.now();
+
+      var timer = setInterval(function () {
+        var now = performance.now();
+        var dt = (now - last) / 1000;
+        last = now;
+        var waiting = false;
+
+        if (now >= stallUntil) {
+          var cap = allLoaded ? 100 : 80;
+          if (pct >= cap && !allLoaded) waiting = true;
+          pct = Math.min(pct + rate * dt * rand(0.2, 2.0), cap);
+          if (stopIndex < stops.length && pct >= stops[stopIndex]) {
+            pct = stops[stopIndex];
+            stopIndex++;
+            stallUntil = now + rand(400, 1400) * (1 + cpuMs / 80);
+          }
+        }
+
+        var shown = Math.floor(pct);
+        percentEl.textContent = shown + "%";
+        barFill.style.width = shown + "%";
+        statusEl.textContent = statusFor(shown, waiting);
+
+        if (pct >= 100) {
+          clearInterval(timer);
+          setTimeout(function () {
+            home.classList.add("hidden");
+            shop.classList.remove("hidden");
+            window.scrollTo(0, 0);
+            loader.classList.remove("show");
+            busy = false;
+          }, 400);
+        }
+      }, 50);
+    });
+
+    document.getElementById("backBtn").addEventListener("click", function () {
+      shop.classList.add("hidden");
+      home.classList.remove("hidden");
+    });
+
+    (function () {
+      var game = document.getElementById("game"), c = document.getElementById("gc"), g = c.getContext("2d");
+      var hud = document.getElementById("hud"), over = document.getElementById("gover"), stats = document.getElementById("gstats");
+      var W, H, keys = {}, mouse = { x: 0, y: 0, down: false };
+      var P, Z, B, wave, score, toSpawn, spawnT, nextWaveT, lastShot, banner, last, running = false, dead = false;
+      var best = 0;
+      try { best = +localStorage.getItem("monkHigh") || 0; } catch (e) {}
+
+      function size() { W = c.width = innerWidth; H = c.height = innerHeight; }
+      addEventListener("resize", size);
+
+      function startWave() {
+        wave++; toSpawn = 5 + wave * 3; spawnT = 0; banner = 2;
+        P.hp = Math.min(100, P.hp + 15);
+      }
+      function reset() {
+        size();
+        P = { x: W / 2, y: H / 2, hp: 100, a: 0 };
+        Z = []; B = []; wave = 0; score = 0; lastShot = 0; nextWaveT = 0; dead = false;
+        over.classList.add("hidden");
+        startWave();
+      }
+      function spawn() {
+        var s = Math.floor(Math.random() * 4), x, y;
+        if (s === 0) { x = rand(0, W); y = -30; }
+        else if (s === 1) { x = W + 30; y = rand(0, H); }
+        else if (s === 2) { x = rand(0, W); y = H + 30; }
+        else { x = -30; y = rand(0, H); }
+        var tough = wave >= 3 && Math.random() < Math.min(0.5, wave * 0.05);
+        Z.push({ x: x, y: y, hp: tough ? 3 : 1, big: tough, sp: Math.min(150, 45 + wave * 6) * rand(0.8, 1.2) });
+      }
+      function endGame() {
+        dead = true;
+        var newBest = score > best;
+        if (newBest) { best = score; try { localStorage.setItem("monkHigh", best); } catch (e) {} }
+        stats.innerHTML = "Score: " + score + " &nbsp;|&nbsp; Wave: " + wave + "<br>High score: " + best + (newBest ? " 🏆 NEW!" : "");
+        over.classList.remove("hidden");
+      }
+      function emoji(ch, x, y, sz) { g.font = sz + "px serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(ch, x, y); }
+
+      function loop(t) {
+        if (!running) return;
+        var dt = Math.min((t - last) / 1000, 0.05); last = t;
+        if (!dead) {
+          var dx = (keys.d || keys.arrowright ? 1 : 0) - (keys.a || keys.arrowleft ? 1 : 0);
+          var dy = (keys.s || keys.arrowdown ? 1 : 0) - (keys.w || keys.arrowup ? 1 : 0);
+          if (dx && dy) { dx *= .707; dy *= .707; }
+          P.x = Math.max(20, Math.min(W - 20, P.x + dx * 230 * dt));
+          P.y = Math.max(20, Math.min(H - 20, P.y + dy * 230 * dt));
+          P.a = Math.atan2(mouse.y - P.y, mouse.x - P.x);
+          if (mouse.down && t - lastShot > 140) {
+            lastShot = t;
+            var a = P.a + rand(-.04, .04);
+            B.push({ x: P.x + Math.cos(a) * 36, y: P.y + Math.sin(a) * 36, vx: Math.cos(a) * 750, vy: Math.sin(a) * 750, l: 1.2 });
+          }
+          if (toSpawn > 0) { spawnT -= dt; if (spawnT <= 0) { spawn(); toSpawn--; spawnT = Math.max(.25, .9 - wave * .04); } }
+          B.forEach(function (b) { b.x += b.vx * dt; b.y += b.vy * dt; b.l -= dt; });
+          Z.forEach(function (z) {
+            var ax = P.x - z.x, ay = P.y - z.y, d = Math.sqrt(ax * ax + ay * ay) || 1;
+            z.x += ax / d * z.sp * dt; z.y += ay / d * z.sp * dt;
+            if (d < 30) P.hp -= 30 * dt;
+            B.forEach(function (b) {
+              if (b.l > 0 && Math.abs(b.x - z.x) < 22 && Math.abs(b.y - z.y) < 22) { b.l = 0; z.hp--; }
+            });
+            if (z.hp <= 0) { score += z.big ? 30 : 10; }
+          });
+          Z = Z.filter(function (z) { return z.hp > 0; });
+          B = B.filter(function (b) { return b.l > 0; });
+          if (toSpawn === 0 && Z.length === 0) { nextWaveT += dt; if (nextWaveT > 2) { nextWaveT = 0; startWave(); } }
+          if (banner > 0) banner -= dt;
+          if (P.hp <= 0) { P.hp = 0; endGame(); }
+        }
+        g.clearRect(0, 0, W, H);
+        g.strokeStyle = "rgba(124,92,255,.08)"; g.lineWidth = 1;
+        for (var x = 0; x < W; x += 50) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, H); g.stroke(); }
+        for (var y = 0; y < H; y += 50) { g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke(); }
+        g.fillStyle = "#ffe066";
+        B.forEach(function (b) { g.beginPath(); g.arc(b.x, b.y, 4, 0, 6.3); g.fill(); });
+        Z.forEach(function (z) {
+          g.fillStyle = z.big ? "rgba(255,60,60,.4)" : "rgba(80,255,80,.35)";
+          g.beginPath(); g.arc(z.x, z.y, z.big ? 30 : 22, 0, 6.3); g.fill();
+          emoji("🐵", z.x, z.y, z.big ? 52 : 38);
+          emoji("🧟", z.x + 8, z.y + 10, z.big ? 20 : 14);
+        });
+        if (!dead) {
+          g.save(); g.translate(P.x, P.y); g.rotate(P.a);
+          g.fillStyle = "#333"; g.fillRect(10, -5, 30, 10);
+          g.fillStyle = "#666"; g.fillRect(34, -3, 10, 6);
+          g.restore();
+          emoji("🐒", P.x, P.y, 44);
+          g.fillStyle = "#222"; g.fillRect(P.x - 25, P.y + 32, 50, 6);
+          g.fillStyle = P.hp > 40 ? "#4dff88" : "#ff4d6d"; g.fillRect(P.x - 25, P.y + 32, 50 * P.hp / 100, 6);
+        }
+        if (banner > 0 && !dead) {
+          g.globalAlpha = Math.min(1, banner); g.fillStyle = "#fff"; g.font = "800 56px Segoe UI, Arial";
+          g.textAlign = "center"; g.fillText("WAVE " + wave, W / 2, H / 3); g.globalAlpha = 1;
+        }
+        hud.innerHTML = "WAVE " + wave + "<br>SCORE " + score + "<br>HIGH SCORE " + best + "<br>ZOMBIES " + (Z.length + toSpawn) +
+          "<br><span style='font-weight:400;font-size:.8rem;color:#aaa'>WASD move · mouse aim · hold click to shoot</span>";
+        requestAnimationFrame(loop);
+      }
+
+      function open() { game.classList.remove("hidden"); reset(); running = true; last = performance.now(); requestAnimationFrame(loop); }
+      function close() { running = false; game.classList.add("hidden"); }
+
+      document.getElementById("gameBtn").addEventListener("click", open);
+      document.getElementById("gexit").addEventListener("click", close);
+      document.getElementById("gagain").addEventListener("click", reset);
+      c.addEventListener("mousemove", function (e) { mouse.x = e.clientX; mouse.y = e.clientY; });
+      c.addEventListener("mousedown", function (e) { mouse.down = true; mouse.x = e.clientX; mouse.y = e.clientY; });
+      addEventListener("mouseup", function () { mouse.down = false; });
+      addEventListener("keydown", function (e) { if (running) keys[e.key.toLowerCase()] = true; });
+      addEventListener("keyup", function (e) { keys[e.key.toLowerCase()] = false; });
+    })();
+
+    (function () {
+      var TITLE_ID = "184E88";
+      var token = null, userName = "", guestTicket = null;
+      try { token = localStorage.getItem("webToken"); userName = localStorage.getItem("webName") || ""; } catch (e) {}
+
+      var loginBtn = document.getElementById("loginBtn"), info = document.getElementById("acctInfo");
+      var nameEl = document.getElementById("acctName"), monksEl = document.getElementById("acctMonks");
+      var modal = document.getElementById("lmodal"), lcode = document.getElementById("lcode");
+      var lerr = document.getElementById("lerr"), lsubmit = document.getElementById("lsubmit");
+      var toastEl = document.getElementById("toast"), toastTimer;
+
+      function say(text) {
+        toastEl.textContent = text;
+        toastEl.classList.add("show");
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(function () { toastEl.classList.remove("show"); }, 2600);
+      }
+
+      function pf(endpoint, body, tk) {
+        var headers = { "Content-Type": "application/json" };
+        if (tk) headers["X-Authentication"] = tk;
+        return fetch("https://" + TITLE_ID + ".playfabapi.com/Client/" + endpoint, {
+          method: "POST", headers: headers, body: JSON.stringify(body)
+        }).then(function (r) { return r.json(); }).then(function (d) {
+          if (d.code !== 200) { var err = new Error(d.errorMessage || "Request failed"); err.pfError = d.error; throw err; }
+          return d.data;
+        });
+      }
+
+      function guest() {
+        if (guestTicket) return Promise.resolve(guestTicket);
+        var id = null;
+        try { id = localStorage.getItem("guestId"); } catch (e) {}
+        if (!id) {
+          var a = new Uint8Array(12);
+          crypto.getRandomValues(a);
+          id = "web-" + Array.prototype.map.call(a, function (b) { return ("0" + b.toString(16)).slice(-2); }).join("");
+          try { localStorage.setItem("guestId", id); } catch (e) {}
+        }
+        return pf("LoginWithCustomID", { TitleId: TITLE_ID, CustomId: id, CreateAccount: true }).then(function (d) {
+          guestTicket = d.SessionTicket;
+          return guestTicket;
+        });
+      }
+
+      function call(fn, params, retried) {
+        return guest().then(function (tk) {
+          return pf("ExecuteCloudScript", { FunctionName: fn, FunctionParameter: params, GeneratePlayStreamEvent: false }, tk);
+        }).then(function (d) {
+          if (d.Error) throw new Error("Server script error");
+          return d.FunctionResult || {};
+        }).catch(function (e) {
+          if (!retried && (e.pfError === "NotAuthenticated" || e.pfError === "InvalidSessionTicket")) {
+            guestTicket = null;
+            return call(fn, params, true);
+          }
+          throw e;
+        });
+      }
+
+      function updateUI() {
+        var on = !!token;
+        loginBtn.classList.toggle("hidden", on);
+        info.classList.toggle("hidden", !on);
+        nameEl.textContent = userName ? "🐒 " + userName : "";
+        if (!on) monksEl.textContent = "0 Monks";
+      }
+
+      function clearSession() {
+        token = null; userName = "";
+        try { localStorage.removeItem("webToken"); localStorage.removeItem("webName"); } catch (e) {}
+        updateUI();
+      }
+
+      function logout() {
+        var t = token;
+        clearSession();
+        if (t) call("webLogout", { token: t }).catch(function () {});
+      }
+
+      function refresh() {
+        if (!token || document.hidden) return;
+        call("getWebMonks", { token: token }).then(function (r) {
+          if (!r.ok) { clearSession(); return; }
+          monksEl.textContent = Number(r.monks).toLocaleString() + " Monks";
+        }).catch(function () {});
+      }
+
+      function openLogin(msg) {
+        lerr.textContent = msg || "";
+        modal.classList.remove("hidden");
+        setTimeout(function () { lcode.focus(); }, 50);
+      }
+      function closeLogin() { modal.classList.add("hidden"); lcode.value = ""; }
+
+      function doLogin() {
+        var code = lcode.value.trim();
+        if (!code) { lerr.textContent = "Enter the code from the game."; return; }
+        lsubmit.disabled = true; lerr.textContent = "Checking code...";
+        call("redeemLoginCode", { code: code }).then(function (r) {
+          if (!r.ok) { lerr.textContent = r.error || "Login failed."; return; }
+          token = r.token; userName = r.name;
+          try { localStorage.setItem("webToken", token); localStorage.setItem("webName", userName); } catch (e) {}
+          closeLogin(); updateUI();
+          monksEl.textContent = Number(r.monks).toLocaleString() + " Monks";
+          say("Logged in!");
+        }).catch(function (e) {
+          lerr.textContent = e.message || "Login failed.";
+        }).then(function () { lsubmit.disabled = false; });
+      }
+
+      loginBtn.addEventListener("click", function () { openLogin(); });
+      document.getElementById("logoutBtn").addEventListener("click", function () { logout(); say("Logged out"); });
+      document.getElementById("lcancel").addEventListener("click", closeLogin);
+      lsubmit.addEventListener("click", doLogin);
+      lcode.addEventListener("keydown", function (e) { if (e.key === "Enter") doLogin(); });
+      modal.addEventListener("mousedown", function (e) { if (e.target === modal) closeLogin(); });
+
+      grid.addEventListener("click", function (e) {
+        if (!e.target.classList.contains("purchase")) return;
+        if (!token) { openLogin("Log in with a game code to purchase."); return; }
+        var btn = e.target;
+        var idx = Array.prototype.indexOf.call(grid.children, btn.closest(".panel"));
+        btn.disabled = true;
+        btn.textContent = "Loading...";
+        fetch("/.netlify/functions/create-checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: token, pack: idx })
+        }).then(function (r) { return r.json(); }).then(function (d) {
+          if (d.url) { window.location.href = d.url; return; }
+          throw new Error(d.error || "Checkout failed.");
+        }).catch(function (err) {
+          say(err.message || "Checkout failed.");
+          btn.disabled = false;
+          btn.textContent = "Purchase";
+        });
+      });
+
+      var qs = new URLSearchParams(window.location.search);
+      var sid = qs.get("session_id");
+      if (qs.get("canceled")) {
+        history.replaceState(null, "", window.location.pathname);
+        home.classList.add("hidden");
+        shop.classList.remove("hidden");
+        say("Checkout canceled");
+      }
+      if (qs.get("paid") === "1" && sid) {
+        history.replaceState(null, "", window.location.pathname);
+        home.classList.add("hidden");
+        shop.classList.remove("hidden");
+        say("Confirming your payment...");
+        fetch("/.netlify/functions/confirm-payment", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ session_id: sid })
+        }).then(function (r) { return r.json(); }).then(function (d) {
+          if (!d.ok) throw new Error(d.error || "Could not confirm payment.");
+          burst(window.innerWidth / 2, window.innerHeight / 2);
+          setTimeout(function () { burst(window.innerWidth * 0.25, window.innerHeight / 2); }, 250);
+          setTimeout(function () { burst(window.innerWidth * 0.75, window.innerHeight / 2); }, 500);
+          say("Thank you! " + Number(d.monks).toLocaleString() + " Monks added");
+          refresh();
+        }).catch(function (err) {
+          say(err.message || "Could not confirm payment.");
+        });
+      }
+
+      updateUI();
+      refresh();
+      setInterval(refresh, 15000);
+    })();
+  </script>
+</body>
+</html>
